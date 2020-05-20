@@ -1,0 +1,12 @@
+## Interface: 80300
+## Title: Framerate Graph
+## Author: LudiusMaximus
+## Notes: More FPS info than meets the eye!
+## SavedVariables: config
+## RequiredDeps:
+## OptionalDeps:
+## Version: 1.0
+## X-Donate: PayPal:ludiusmaximus@gmail.com
+## X-License: The MIT License (MIT)
+
+main.lua
