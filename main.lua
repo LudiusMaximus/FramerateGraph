@@ -1,41 +1,46 @@
 local folderName = ...
 
-
-local math_floor = _G.math.floor
-local math_min   = _G.math.min
 local math_max   = _G.math.max
-
-local function Round(num, numDecimalPlaces)
-  local mult = 10^(numDecimalPlaces or 0);
-  return math_floor(num * mult + 0.5) / mult;
-end
-
+local math_min   = _G.math.min
+local math_floor = _G.math.floor
 
 local ButtonFrameTemplate_HidePortrait = _G.ButtonFrameTemplate_HidePortrait
 
 
-local pixelFilePath = "Interface/BUTTONS/WHITE8X8"
+local function Round(num, numDecimalPlaces)
+  local mult = 10^(numDecimalPlaces or 0)
+  return math_floor(num * mult + 0.5) / mult
+end
 
 
-local graphWidthMin = 50
-local graphWidthMax = 1000
+---------------------
+-- Constants --------
+---------------------
 
-local graphHeightMin = 50
-local graphHeightMax = 600
-
-local graphBarThicknessMin = 1
-local graphBarThicknessMax = 10
-
-local framesPerGraphBarMin = 1
-local framesPerGraphBarMax = 30
+local PIXEL_FILE_PATH = "Interface/BUTTONS/WHITE8X8"
 
 
-local graphLineThicknessMin = 1
-local graphLineThicknessMax = 10
+local CONFIG_FRAME_WIDTH = 325
+local CONFIG_FRAME_HEIGHT = 500
 
 
+local GRAPH_WIDTH_MIN = 50
+local GRAPH_WIDTH_MAX = 1000
 
-local configDefaults = {
+local GRAPH_HEIGHT_MIN = 50
+local GRAPH_HEIGHT_MAX = 600
+
+local GRAPH_BAR_THICKNESS_MIN = 1
+local GRAPH_BAR_THICKNESS_MAX = 10
+
+local FRAMES_PER_GRAPH_BAR_MIN = 1
+local FRAMES_PER_GRAPH_BAR_MAX = 30
+
+local GRAPH_LINE_THICKNESS_MIN = 1
+local GRAPH_LINE_THICKNESS_MAX = 10
+
+
+local CONFIG_DEFAULTS = {
 
   graphAnchor = "CENTER",
   graphX      = 0,
@@ -48,95 +53,146 @@ local configDefaults = {
 
   framesPerGraphBar = 1,
 
-  showMax = true,
-  showAvg = true,
-  showMin = true,
-  
-  maxColor = {1, 0, 0, 1},
-  avgColor = {0, 1, 0, 1},
-  minColor = {0, 0, 1, 1},
-  
-    
-  graphLineThickness = 1,
+  show = {
+    max = true,
+    avg = true,
+    min = true,
+  },
 
+  color = {
+    max = {1.0, 1.0, 1.0},
+    avg = {0.8, 0.8, 0.8},
+    min = {0.6, 0.6, 0.6},
+  },
+
+  graphLineThickness = 1,
 }
 
 
 
 
 
+---------------------
+-- Locals -----------
+---------------------
+
+-- Forward declaration.
+local UpdateGraphBarsColor
+local RefreshGraph
+local OneFrameMode
+
+
 -- The graph frame.
 local gf = nil
 
-
-
 local numberOfVisibleBars = 0
 local numberOfCreatedBars = 0
-local graphBarsMin = {}
-local graphBarsMax = {}
-local graphBarsAvg = {}
 
-local graphBarValuesMin = {}
-local graphBarValuesMax = {}
-local graphBarValuesAvg = {}
+-- To calculate the per bar values.
+local frameCounter = 0
+local minFPS = 99999
+local maxFPS = 0
+local sumFPS = 0
+
+local graphBars = {
+  max = {},
+  avg = {},
+  min = {},
+}
+
+local graphBarValues = {
+  max = {},
+  avg = {},
+  min = {},
+}
+
 local graphBarValuesFirstIndex = 0
 
-
 local graphLines = {}
-
 
 local horizontalGridLines = {}
 local verticalGridLines = {}
 
 
 
--- To calculate the per bar values.
--- (Only applicable if framesPerGraphBar > 1.)
-local frameCounter = 0
-local minFPS = 99999
-local maxFPS = 0
-local sumFPS = 0
+-- local function DrawFilledBox(f, bottomLeftX, bottomLeftY, topRightX, topRightY, r, g, b, a)
+  -- local box = f:CreateTexture()
+  -- box:SetTexture(PIXEL_FILE_PATH)
+  -- box:SetColorTexture(r, g, b, a)
+  -- box:SetPoint("BOTTOMLEFT", bottomLeftX, bottomLeftY)
+  -- box:SetSize(topRightX-bottomLeftX, topRightY-bottomLeftY)
+-- end
+
+
+-- local function DrawEmptyBox(f, bottomLeftX, bottomLeftY, topRightX, topRightY, linewidth, r, g, b, a)
+
+  -- -- LTTTTTTT
+  -- -- L      R
+  -- -- L      R
+  -- -- L      R
+  -- -- BBBBBBBR
+
+  -- -- Bottom line
+  -- DrawFilledBox(f, bottomLeftX, bottomLeftY, bottomLeftX+topRightX-linewidth, bottomLeftY+linewidth, r, g, b, a)
+  -- -- Top line
+  -- DrawFilledBox(f, bottomLeftX+linewidth, topRightY-linewidth, bottomLeftX+topRightX, bottomLeftY+topRightY, r, g, b, a)
+  -- -- Left line
+  -- DrawFilledBox(f, bottomLeftX, bottomLeftY+linewidth, bottomLeftX+linewidth, bottomLeftY+topRightY, r, g, b, a)
+  -- -- Right line
+  -- DrawFilledBox(f, bottomLeftX+topRightX-linewidth, bottomLeftY, topRightX, bottomLeftY+topRightY-linewidth, r, g, b, a)
+-- end
 
 
 
 
 
+local function ColorPickerCallback(restore)
+  local variableSuffix = ColorPickerFrame.variableSuffix
+  local oldR, oldG, oldB, oldA = unpack(config.color[variableSuffix])
 
+  local newR, newG, newB, newA
+  if restore then
+    -- The user bailed, we extract the old color from the table created by ShowColorPicker.
+    newR, newG, newB, newA = unpack(restore)
+  else
+    -- Something changed
+    newA, newR, newG, newB = 1-OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
+  end
 
-
-
-
-
-
-
-local function DrawFilledBox(f, bottomLeftX, bottomLeftY, topRightX, topRightY, r, g, b, a)
-  local box = f:CreateTexture()
-  box:SetTexture(pixelFilePath)
-  box:SetColorTexture(r, g, b, a)
-  box:SetPoint("BOTTOMLEFT", bottomLeftX, bottomLeftY)
-  box:SetSize(topRightX-bottomLeftX, topRightY-bottomLeftY)
+  if oldR ~= newR or oldG ~= newG or oldB ~= newB or oldA ~= newA then
+    config.color[variableSuffix] = {newR, newG, newB, newA}
+    UpdateGraphBarsColor(graphBars[variableSuffix], config.color[variableSuffix])
+    _G["fpsGraph_"..variableSuffix.."ColorButton"].foreground:SetColorTexture(newR, newG, newB, 1)
+  end
 end
 
 
-local function DrawEmptyBox(f, bottomLeftX, bottomLeftY, topRightX, topRightY, linewidth, r, g, b, a)
+-- https://wow.gamepedia.com/Using_the_ColorPickerFrame
+function ShowColorPicker(variableSuffix)
+  ColorPickerFrame.variableSuffix = variableSuffix
 
-  -- LTTTTTTT
-  -- L      R
-  -- L      R
-  -- L      R
-  -- BBBBBBBR
+  local color = config.color[variableSuffix]
+  local r, g, b, a = unpack(color)
 
-  -- Bottom line
-  DrawFilledBox(f, bottomLeftX, bottomLeftY, bottomLeftX+topRightX-linewidth, bottomLeftY+linewidth, r, g, b, a)
-  -- Top line
-  DrawFilledBox(f, bottomLeftX+linewidth, topRightY-linewidth, bottomLeftX+topRightX, bottomLeftY+topRightY, r, g, b, a)
-  -- Left line
-  DrawFilledBox(f, bottomLeftX, bottomLeftY+linewidth, bottomLeftX+linewidth, bottomLeftY+topRightY, r, g, b, a)
-  -- Right line
-  DrawFilledBox(f, bottomLeftX+topRightX-linewidth, bottomLeftY, topRightX, bottomLeftY+topRightY-linewidth, r, g, b, a)
+  if a ~= nil then
+    ColorPickerFrame.hasOpacity = true
+    ColorPickerFrame.opacity    = 1 - a
+  else
+    ColorPickerFrame.hasOpacity = false
+  end
 
+  ColorPickerFrame.previousValues = color
+
+  ColorPickerFrame.func        = ColorPickerCallback
+  ColorPickerFrame.opacityFunc = ColorPickerCallback
+  ColorPickerFrame.cancelFunc  = ColorPickerCallback
+
+  ColorPickerFrame:SetColorRGB(r,g,b)
+
+   -- Need to run the OnShow handler.
+  ColorPickerFrame:Hide()
+  ColorPickerFrame:Show()
 end
-
 
 
 
@@ -177,14 +233,6 @@ end
 
 
 
-
-
-
-
-
-
-
-
 local function DrawGraphBar(graphBars, graphBarValues, i, smoothProgress)
 
   if i == 1 then
@@ -207,7 +255,7 @@ local function DrawGraphBar(graphBars, graphBarValues, i, smoothProgress)
     graphBars[i]:SetPoint("BOTTOMRIGHT", gf.grid, "BOTTOMRIGHT", -graphStartX, 0)
     graphBars[i]:SetPoint("TOPLEFT", gf.grid, "BOTTOMRIGHT", -graphEndX, graphBarValues[(graphBarValuesFirstIndex - i + 1) % numberOfVisibleBars])
   end
-  
+
 end
 
 
@@ -226,24 +274,24 @@ updateFrame:SetScript("onUpdate", function(self, elapsed)
 
   -- Calculate the framerate between this and the last frame.
   local currentFramerate = 1/elapsed
-  
-  
+
+
   if config.framesPerGraphBar == 1 then
 
     -- Increase the index.
     graphBarValuesFirstIndex = (graphBarValuesFirstIndex + 1) % numberOfVisibleBars
-    
+
     -- Fill in the most recent value.
-    graphBarValuesAvg[graphBarValuesFirstIndex] = currentFramerate
-   
+    graphBarValues.avg[graphBarValuesFirstIndex] = currentFramerate
+
   else
-  
+
     frameCounter = frameCounter + 1
-  
-    if config.showMax then maxFPS = math_max(maxFPS, currentFramerate) end
-    if config.showAvg then sumFPS = sumFPS + currentFramerate end
-    if config.showMin then minFPS = math_min(minFPS, currentFramerate) end
-  
+
+    if config.show.max then maxFPS = math_max(maxFPS, currentFramerate) end
+    if config.show.avg then sumFPS = sumFPS + currentFramerate end
+    if config.show.min then minFPS = math_min(minFPS, currentFramerate) end
+
     -- If one graph is complete, fill in the value.
     if frameCounter == config.framesPerGraphBar then
 
@@ -251,34 +299,33 @@ updateFrame:SetScript("onUpdate", function(self, elapsed)
       graphBarValuesFirstIndex = (graphBarValuesFirstIndex + 1) % numberOfVisibleBars
 
       -- Fill in the current values and reset the counters.
-      if config.showMax then
-        graphBarValuesMax[graphBarValuesFirstIndex] = maxFPS
+      if config.show.max then
+        graphBarValues.max[graphBarValuesFirstIndex] = maxFPS
         maxFPS = 0
       end
-      if config.showAvg then
-        graphBarValuesAvg[graphBarValuesFirstIndex] = sumFPS/frameCounter
+      if config.show.avg then
+        graphBarValues.avg[graphBarValuesFirstIndex] = sumFPS/frameCounter
         sumFPS = 0
       end
-      if config.showMin then
-        graphBarValuesMin[graphBarValuesFirstIndex] = minFPS
+      if config.show.min then
+        graphBarValues.min[graphBarValuesFirstIndex] = minFPS
         minFPS = 99999
       end
 
       frameCounter = 0
     end
-  
+
   end
-    
-  
+
   -- Draw the graph.
   if config.framesPerGraphBar == 1 then
-    DrawGraphBars(graphBarsAvg, graphBarValuesAvg)
+    DrawGraphBars(graphBars.avg, graphBarValues.avg)
   else
-    if config.showMax then DrawGraphBars(graphBarsMax, graphBarValuesMax) end
-    if config.showAvg then DrawGraphBars(graphBarsAvg, graphBarValuesAvg) end
-    if config.showMin then DrawGraphBars(graphBarsMin, graphBarValuesMin) end
+    if config.show.max then DrawGraphBars(graphBars.max, graphBarValues.max) end
+    if config.show.avg then DrawGraphBars(graphBars.avg, graphBarValues.avg) end
+    if config.show.min then DrawGraphBars(graphBars.min, graphBarValues.min) end
   end
-  
+
 end)
 
 
@@ -289,7 +336,7 @@ end)
 local function InsertGraphBar(graphBars, drawLayerSubLevel)
   local newBar = gf.grid:CreateTexture()
   newBar:SetDrawLayer("ARTWORK", drawLayerSubLevel)
-  newBar:SetTexture(pixelFilePath)
+  newBar:SetTexture(PIXEL_FILE_PATH)
   tinsert(graphBars, newBar)
 end
 
@@ -309,12 +356,21 @@ local function ShowGraphBars(graphBars, color, numberOfRequiredBars)
   end
 end
 
+-- Forward declaration above...
+UpdateGraphBarsColor = function(graphBars, color)
+  for i, bar in pairs(graphBars) do
+    bar:SetColorTexture(unpack(color))
+  end
+end
+
+
+
 
 local function HideGraph(graphBars, graphBarValues)
   for _, bar in pairs(graphBars) do
     bar:Hide()
   end
-  
+
   for i in pairs(graphBarValues) do
     graphBarValues[i] = 0
   end
@@ -330,15 +386,22 @@ end
 
 
 -- Called when the graph size is changed.
-local function RefreshGraph()
+-- Forward declaration above...
+RefreshGraph = function()
 
   if config.framesPerGraphBar == 1 then
-    HideGraph(graphBarsMax, graphBarValuesMax)
-    HideGraph(graphBarsMin, graphBarValuesMin)
+    OneFrameMode(true)
+    HideGraph(graphBars.max, graphBarValues.max)
+    HideGraph(graphBars.min, graphBarValues.min)
+  else
+    OneFrameMode(false)
+    if not config.show.max then HideGraph(graphBars.max, graphBarValues.max) end
+    if not config.show.avg then HideGraph(graphBars.avg, graphBarValues.avg) end
+    if not config.show.min then HideGraph(graphBars.min, graphBarValues.min) end
   end
 
+
   UpdateLines()
-  
 
   gf:SetWidth(config.graphWidth)
   gf:SetHeight(config.graphHeight)
@@ -358,9 +421,9 @@ local function RefreshGraph()
     -- of bars is to insert them all, regardless of whether they are
     -- needed or not...
     for i = numberOfCreatedBars+1, numberOfRequiredBars, 1 do
-      InsertGraphBar(graphBarsMax, -1)
-      InsertGraphBar(graphBarsAvg, 0)
-      InsertGraphBar(graphBarsMin, 1)
+      InsertGraphBar(graphBars.max, -1)
+      InsertGraphBar(graphBars.avg, 0)
+      InsertGraphBar(graphBars.min, 1)
     end
 
     numberOfCreatedBars = numberOfRequiredBars
@@ -368,22 +431,20 @@ local function RefreshGraph()
 
   -- Make visible as many bars as we need and hide the others.
   if config.framesPerGraphBar == 1 then
-    ShowGraphBars(graphBarsAvg, config.avgColor, numberOfRequiredBars)
+    ShowGraphBars(graphBars.avg, config.color.avg, numberOfRequiredBars)
   else
-    if config.showMax then ShowGraphBars(graphBarsMax, config.maxColor, numberOfRequiredBars) end
-    if config.showAvg then ShowGraphBars(graphBarsAvg, config.avgColor, numberOfRequiredBars) end
-    if config.showMin then ShowGraphBars(graphBarsMin, config.minColor, numberOfRequiredBars) end
+    if config.show.max then ShowGraphBars(graphBars.max, config.color.max, numberOfRequiredBars) end
+    if config.show.avg then ShowGraphBars(graphBars.avg, config.color.avg, numberOfRequiredBars) end
+    if config.show.min then ShowGraphBars(graphBars.min, config.color.min, numberOfRequiredBars) end
   end
-  
+
   numberOfVisibleBars = numberOfRequiredBars
-  
 
   -- Reset the counters.
   frameCounter = 0
   minFPS = 99999
   maxFPS = 0
   sumFPS = 0
-
 end
 
 
@@ -409,18 +470,13 @@ local function CreateGraph()
   gf:Show()
 
 
-
   gf.grid = CreateFrame("Frame", nil, gf)
   gf.grid:SetPoint("BOTTOMLEFT", 10, 10)
   gf.grid:SetPoint("TOPRIGHT", -50, -10)
 
 
-
-
   SetFrameBorder(gf.grid, 1, 1, 0, 0, 1)
-
   SetFrameBorder(gf, 1, 0, 0, 1, 1)
-
 
 
   RefreshGraph()
@@ -438,19 +494,30 @@ end
 
 
 local function AddSlider(parentFrame, anchor, offsetX, offsetY, sliderTitle, variableName, minValue, maxValue, valueStep)
-  parentFrame.widthSlider = CreateFrame("Slider", "fpsGraph_"..variableName.."Slider", parentFrame, "OptionsSliderTemplate")
-  parentFrame.widthSlider:SetPoint(anchor, offsetX, offsetY)
-  parentFrame.widthSlider:SetWidth(240)
-  parentFrame.widthSlider:SetHeight(17)
-  parentFrame.widthSlider:SetMinMaxValues(minValue, maxValue)
-  parentFrame.widthSlider:SetValueStep(valueStep)
-  parentFrame.widthSlider:SetObeyStepOnDrag(true)
-  parentFrame.widthSlider:SetValue(config[variableName])
-   _G[parentFrame.widthSlider:GetName() .. 'Low']:SetText(minValue)
-   _G[parentFrame.widthSlider:GetName() .. 'High']:SetText(maxValue)
-   _G[parentFrame.widthSlider:GetName() .. 'Text']:SetText(sliderTitle)
-  parentFrame.widthSlider:SetScript("OnValueChanged", function(self, value)
+  local slider = CreateFrame("Slider", "fpsGraph_"..variableName.."Slider", parentFrame, "OptionsSliderTemplate")
+  slider:SetPoint(anchor, offsetX, offsetY)
+  slider:SetWidth(240)
+  slider:SetHeight(17)
+  slider:SetMinMaxValues(minValue, maxValue)
+  slider:SetValueStep(valueStep)
+  slider:SetObeyStepOnDrag(true)
+  slider:SetValue(config[variableName])
+
+  _G[slider:GetName() .. 'Low']:SetText(minValue)
+  _G[slider:GetName() .. 'High']:SetText(maxValue)
+  _G[slider:GetName() .. 'Text']:SetText(sliderTitle)
+
+  slider.valueLabel = parentFrame:CreateFontString("fpsGraph_"..variableName.."SliderValueLabel", "HIGH")
+  slider.valueLabel:SetFont("Fonts\\FRIZQT__.TTF", 11)
+  slider.valueLabel:SetTextColor(1, 1, 1)
+  slider.valueLabel:SetPoint("LEFT", slider, "RIGHT", 15, 0)
+  slider.valueLabel:SetWidth(25)
+  slider.valueLabel:SetJustifyH("CENTER")
+  slider.valueLabel:SetText(config[variableName])
+
+  slider:SetScript("OnValueChanged", function(self, value)
       config[variableName] = value
+      self.valueLabel:SetText(value)
       RefreshGraph()
     end)
 end
@@ -458,11 +525,119 @@ end
 
 
 
+local function AddSeriesSelector(parentFrame, anchor, offsetX, offsetY, labelText, variableSuffix)
+
+  local checkbox = CreateFrame("CheckButton", "fpsGraph_"..variableSuffix.."Checkbox", parentFrame, "UICheckButtonTemplate")
+  checkbox:SetSize(22, 22)
+  checkbox:SetPoint(anchor, offsetX, offsetY)
+
+  if config.show[variableSuffix] == true then
+    checkbox:SetChecked(true)
+  else
+    checkbox:SetChecked(false)
+  end
+
+  checkbox:SetScript("OnClick", function(self)
+      if self:GetChecked() then
+        config.show[variableSuffix] = true
+      else
+        config.show[variableSuffix] = false
+      end
+      RefreshGraph()
+    end
+  )
+
+  local label = parentFrame:CreateFontString("fpsGraph_"..variableSuffix.."SeriesSelector", "HIGH")
+  label:SetPoint("LEFT", checkbox, "RIGHT", 10, 0)
+  label:SetWidth(180)
+  label:SetFont("Fonts\\FRIZQT__.TTF", 12)
+  label:SetTextColor(1, 1, 1)
+  label:SetJustifyH("LEFT")
+  label:SetText(labelText)
+
+
+
+  local colorButton = CreateFrame("Button", "fpsGraph_"..variableSuffix.."ColorButton", parentFrame)
+
+
+  colorButton:SetSize(15, 15)
+  colorButton:SetPoint("LEFT", label, "RIGHT", 10, 0)
+
+
+  colorButton.background = colorButton:CreateTexture()
+
+  colorButton.background:SetAllPoints()
+  colorButton.background:SetDrawLayer("BACKGROUND", 0)
+  colorButton.background:SetTexture(PIXEL_FILE_PATH)
+  colorButton.background:SetColorTexture(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+
+  local layer, subLevel = colorButton.background:GetDrawLayer()
+
+  colorButton.foreground = colorButton:CreateTexture()
+  colorButton.foreground:SetDrawLayer(layer, subLevel+1)
+
+  colorButton.foreground:SetTexture(PIXEL_FILE_PATH)
+  colorButton.foreground:SetColorTexture(unpack(config.color[variableSuffix]))
+  colorButton.foreground:SetPoint("TOPLEFT", 1, -1)
+  colorButton.foreground:SetPoint("BOTTOMRIGHT", -1, 1)
+
+
+  colorButton:SetScript("OnEnter", function(self)
+      self.background:SetColorTexture(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+    end
+  )
+  colorButton:SetScript("OnLeave", function(self)
+      self.background:SetColorTexture(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+    end
+  )
+
+
+  colorButton:SetScript("OnClick", function()
+
+      ShowColorPicker(variableSuffix)
+
+    end
+  )
+
+
+end
+
+
+-- When only one frame per graph bar is selected, max, avg and min are all the same.
+-- So we only show avg.
+-- Forward declaration above...
+OneFrameMode = function(set)
+
+  if set then
+
+    _G["fpsGraph_maxCheckbox"]:SetChecked(false)
+    _G["fpsGraph_avgCheckbox"]:SetChecked(true)
+    _G["fpsGraph_minCheckbox"]:SetChecked(false)
+
+    _G["fpsGraph_maxCheckbox"]:Disable()
+    _G["fpsGraph_avgCheckbox"]:Disable()
+    _G["fpsGraph_minCheckbox"]:Disable()
+
+  else
+
+    _G["fpsGraph_maxCheckbox"]:Enable()
+    _G["fpsGraph_avgCheckbox"]:Enable()
+    _G["fpsGraph_minCheckbox"]:Enable()
+
+    _G["fpsGraph_maxCheckbox"]:SetChecked(config.show.max)
+    _G["fpsGraph_avgCheckbox"]:SetChecked(config.show.avg)
+    _G["fpsGraph_minCheckbox"]:SetChecked(config.show.min)
+
+  end
+end
+
+
+
 
 
 local cf = nil
 
-function DrawConfigFrame()
+local function DrawConfigFrame()
 
   if cf then return end
 
@@ -475,8 +650,8 @@ function DrawConfigFrame()
   -- ButtonFrameTemplate_HideButtonBar(cf)
 
   cf:SetFrameStrata("HIGH")
-  cf:SetWidth(300)
-  cf:SetHeight(500)
+  cf:SetWidth(CONFIG_FRAME_WIDTH)
+  cf:SetHeight(CONFIG_FRAME_HEIGHT)
   cf:SetMovable(true)
   cf:EnableMouse(true)
   cf:RegisterForDrag("LeftButton")
@@ -485,34 +660,27 @@ function DrawConfigFrame()
   cf:SetClampedToScreen(true)
 
 
-  _G[cf:GetName().."TitleText"]:SetText("FPS Graph - Config")
+  _G[cf:GetName().."TitleText"]:SetText("Framerate Graph - Config")
   _G[cf:GetName().."TitleText"]:ClearAllPoints()
   _G[cf:GetName().."TitleText"]:SetPoint("TOPLEFT", 10, -6)
 
 
+  AddSlider(cf.Inset, "TOPLEFT", 20, -20, "Graph width", "graphWidth", GRAPH_WIDTH_MIN, GRAPH_WIDTH_MAX, 1)
+  AddSlider(cf.Inset, "TOPLEFT", 20, -60, "Graph height", "graphHeight", GRAPH_HEIGHT_MIN, GRAPH_HEIGHT_MAX, 1)
+  AddSlider(cf.Inset, "TOPLEFT", 20, -100, "Graph bar thickness", "graphBarThickness", GRAPH_BAR_THICKNESS_MIN, GRAPH_BAR_THICKNESS_MAX, 1)
+  AddSlider(cf.Inset, "TOPLEFT", 20, -140, "Frames per graph bar", "framesPerGraphBar", FRAMES_PER_GRAPH_BAR_MIN, FRAMES_PER_GRAPH_BAR_MAX, 1)
 
+  AddSeriesSelector(cf.Inset, "TOPLEFT", 20, -180, "Maximum FPS per graph bar", "max")
+  AddSeriesSelector(cf.Inset, "TOPLEFT", 20, -200, "Average FPS per graph bar", "avg")
+  AddSeriesSelector(cf.Inset, "TOPLEFT", 20, -220, "Minimum FPS per graph bar", "min")
 
-  AddSlider(cf.Inset, "TOP", 3, -20, "Graph width", "graphWidth", graphWidthMin, graphWidthMax, 1)
-
-  AddSlider(cf.Inset, "TOP", 3, -60, "Graph height", "graphHeight", graphHeightMin, graphHeightMax, 1)
-
-  AddSlider(cf.Inset, "TOP", 3, -100, "Graph bar thickness", "graphBarThickness", graphBarThicknessMin, graphBarThicknessMax, 1)
-
-  AddSlider(cf.Inset, "TOP", 3, -140, "Frames per graph bar", "framesPerGraphBar", framesPerGraphBarMin, framesPerGraphBarMax, 1)
-
-  AddSlider(cf.Inset, "TOP", 3, -180, "Graph line thickness", "graphLineThickness", graphLineThicknessMin, graphLineThicknessMax, 1)
-
-
-
+  AddSlider(cf.Inset, "TOPLEFT", 20, -280, "Graph line thickness", "graphLineThickness", GRAPH_LINE_THICKNESS_MIN, GRAPH_LINE_THICKNESS_MAX, 1)
 
 
   -- tinsert(UISpecialFrames, "fpsGraph_configFrame")
   cf:Show()
 
 end
-
-
-
 
 
 
@@ -528,18 +696,18 @@ addonLoadedFrame:SetScript("OnEvent", function(self, event, arg1, ...)
   if arg1 == folderName then
 
     if not config then
-      config = configDefaults
+      config = CONFIG_DEFAULTS
     else
 
       -- Remove obsolete values from saved variables.
       for k in pairs (config) do
-        if not configDefaults[k] then
+        if not CONFIG_DEFAULTS[k] then
           config[k] = nil
         end
       end
 
       -- Fill missing values.
-      for k, v in pairs (configDefaults) do
+      for k, v in pairs (CONFIG_DEFAULTS) do
         if not config[k] then
           config[k] = v
         end
@@ -553,49 +721,10 @@ addonLoadedFrame:SetScript("OnEvent", function(self, event, arg1, ...)
 
   CreateGraph()
 
-
   end
 end)
 
 
-
-
-
-
--- https://wow.gamepedia.com/Using_the_ColorPickerFrame
-function ShowColorPicker(r, g, b, a, changedCallback)
-  ColorPickerFrame.hasOpacity, ColorPickerFrame.opacity = (a ~= nil), a
-
-  ColorPickerFrame.previousValues = {r,g,b,a}
-
-  ColorPickerFrame.func = changedCallback
-  ColorPickerFrame.opacityFunc = changedCallback
-  ColorPickerFrame.cancelFunc = changedCallback
-
-  ColorPickerFrame:SetColorRGB(r,g,b);
-
-  ColorPickerFrame:Hide(); -- Need to run the OnShow handler.
-  ColorPickerFrame:Show();
-end
-
-
-local function myColorCallback(restore)
- local newR, newG, newB, newA;
- if restore then
-  -- The user bailed, we extract the old color from the table created by ShowColorPicker.
-  newR, newG, newB, newA = unpack(restore);
- else
-  -- Something changed
-  newA, newR, newG, newB = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
- end
- 
- -- Update our internal storage.
- r, g, b, a = newR, newG, newB, newA;
- -- And update any UI elements that use this color...
-end
-
-
-ShowColorPicker(r, g, b, a, myColorCallback);
 
 
 
