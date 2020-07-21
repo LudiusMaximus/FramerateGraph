@@ -20,8 +20,8 @@ end
 local PIXEL_FILE_PATH = "Interface/BUTTONS/WHITE8X8"
 
 
-local CONFIG_FRAME_WIDTH = 325
-local CONFIG_FRAME_HEIGHT = 500
+local CONFIG_FRAME_WIDTH = 400
+local CONFIG_FRAME_HEIGHT = 550
 
 
 local GRAPH_WIDTH_MIN = 50
@@ -35,6 +35,12 @@ local GRAPH_BAR_THICKNESS_MAX = 10
 
 local FRAMES_PER_GRAPH_BAR_MIN = 1
 local FRAMES_PER_GRAPH_BAR_MAX = 30
+
+local Y_AXIS_TOP_MIN = 1
+local Y_AXIS_TOP_MAX = 300
+
+local Y_AXIS_BOTTOM_MIN = 0
+local Y_AXIS_BOTTOM_MAX = 299
 
 local GRAPH_LINE_THICKNESS_MIN = 1
 local GRAPH_LINE_THICKNESS_MAX = 10
@@ -64,6 +70,13 @@ local CONFIG_DEFAULTS = {
     avg = {0.8, 0.8, 0.8},
     min = {0.6, 0.6, 0.6},
   },
+
+
+  yAxisBottom = 0,
+  yAxisBottomDynamic = false,
+
+  yAxisTop = 120,
+  yAxisTopDynamic = false,
 
   graphLineThickness = 1,
 }
@@ -493,10 +506,10 @@ end
 
 
 
-local function AddSlider(parentFrame, anchor, offsetX, offsetY, sliderTitle, variableName, minValue, maxValue, valueStep)
+local function AddSlider(parentFrame, anchor, offsetX, offsetY, sliderTitle, variableName, minValue, maxValue, valueStep, valueChangedFunction)
   local slider = CreateFrame("Slider", "fpsGraph_"..variableName.."Slider", parentFrame, "OptionsSliderTemplate")
   slider:SetPoint(anchor, offsetX, offsetY)
-  slider:SetWidth(240)
+  slider:SetWidth(CONFIG_FRAME_WIDTH - 85)
   slider:SetHeight(17)
   slider:SetMinMaxValues(minValue, maxValue)
   slider:SetValueStep(valueStep)
@@ -518,6 +531,7 @@ local function AddSlider(parentFrame, anchor, offsetX, offsetY, sliderTitle, var
   slider:SetScript("OnValueChanged", function(self, value)
       config[variableName] = value
       self.valueLabel:SetText(value)
+      if valueChangedFunction then valueChangedFunction(self, value) end
       RefreshGraph()
     end)
 end
@@ -674,18 +688,28 @@ local function DrawConfigFrame()
   AddSeriesSelector(cf.Inset, "TOPLEFT", 20, -200, "Average FPS per graph bar", "avg")
   AddSeriesSelector(cf.Inset, "TOPLEFT", 20, -220, "Minimum FPS per graph bar", "min")
 
-  AddSlider(cf.Inset, "TOPLEFT", 20, -280, "Graph line thickness", "graphLineThickness", GRAPH_LINE_THICKNESS_MIN, GRAPH_LINE_THICKNESS_MAX, 1)
+  AddSlider(cf.Inset, "TOPLEFT", 20, -280, "Y-axis top", "yAxisTop", Y_AXIS_TOP_MIN, Y_AXIS_TOP_MAX, 1,
+      function(self, value)
+        if value < config.yAxisBottom + 1 then
+          _G["fpsGraph_yAxisBottomSlider"]:SetValue(value-1)
+        end
+      end
+    )
+  AddSlider(cf.Inset, "TOPLEFT", 20, -320, "Y-axis bottom", "yAxisBottom", Y_AXIS_BOTTOM_MIN, Y_AXIS_BOTTOM_MAX, 1,
+      function(self, value)
+        if value > config.yAxisTop - 1 then
+          _G["fpsGraph_yAxisTopSlider"]:SetValue(value+1)
+        end
+      end
+    )
+
+  AddSlider(cf.Inset, "TOPLEFT", 20, -380, "Graph line thickness", "graphLineThickness", GRAPH_LINE_THICKNESS_MIN, GRAPH_LINE_THICKNESS_MAX, 1)
 
 
   -- tinsert(UISpecialFrames, "fpsGraph_configFrame")
   cf:Show()
 
 end
-
-
-
-
-
 
 
 
