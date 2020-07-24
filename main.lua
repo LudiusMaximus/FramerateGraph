@@ -71,12 +71,11 @@ local CONFIG_DEFAULTS = {
     min = {0.6, 0.6, 0.6},
   },
 
+  yAxisTop = 120,
+  yAxisTopDynamic = false,
 
   yAxisBottom = 0,
   yAxisBottomDynamic = false,
-
-  yAxisTop = 120,
-  yAxisTopDynamic = false,
 
   graphLineThickness = 1,
 }
@@ -241,34 +240,35 @@ end
 
 
 
-
-
-
-
-
 local function DrawGraphBar(graphBars, graphBarValues, i, smoothProgress)
 
+  local barTopY = graphBarValues[(graphBarValuesFirstIndex - i + 1) % numberOfVisibleBars]
+  if not barTopY then
+    graphBars[i]:Hide()
+    return
+  end
+  barTopY = math_max(barTopY - config.yAxisBottom, 0)
+  barTopY = gf.grid:GetHeight() * math_min(barTopY / (config.yAxisTop - config.yAxisBottom), 1)
+
+
+  local barStartX
+  local barEndX
   if i == 1 then
-
-    graphBars[i]:SetPoint("BOTTOMRIGHT", gf.grid, "BOTTOMRIGHT", 0, 0)
-    graphBars[i]:SetPoint("TOPLEFT", gf.grid, "BOTTOMRIGHT", -smoothProgress * config.graphBarThickness, graphBarValues[graphBarValuesFirstIndex])
-
+    barStartX = 0
+    barEndX = config.graphBarThickness * (i - 1 + smoothProgress)
   else
-
-    local graphStartX = config.graphBarThickness * (i - 2 + smoothProgress)
-
-    if graphStartX > gf.grid:GetWidth() then
+    barStartX = config.graphBarThickness * (i - 2 + smoothProgress)
+    if barStartX > gf.grid:GetWidth() then
       graphBars[i]:Hide()
+      return
     else
-      graphBars[i]:Show()
+      barEndX = math_min(barStartX + config.graphBarThickness, gf.grid:GetWidth())
     end
-
-    local graphEndX = math_min(graphStartX + config.graphBarThickness, gf.grid:GetWidth())
-
-    graphBars[i]:SetPoint("BOTTOMRIGHT", gf.grid, "BOTTOMRIGHT", -graphStartX, 0)
-    graphBars[i]:SetPoint("TOPLEFT", gf.grid, "BOTTOMRIGHT", -graphEndX, graphBarValues[(graphBarValuesFirstIndex - i + 1) % numberOfVisibleBars])
   end
 
+  graphBars[i]:Show()
+  graphBars[i]:SetPoint("BOTTOMRIGHT", gf.grid, "BOTTOMRIGHT", -barStartX, 0)
+  graphBars[i]:SetPoint("TOPLEFT",     gf.grid, "BOTTOMRIGHT", -barEndX,   barTopY)
 end
 
 
