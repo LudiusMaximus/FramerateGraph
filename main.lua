@@ -237,47 +237,38 @@ end
 
 
 
-
-
-
-local function DrawGraphBar(graphBars, graphBarValues, i, smoothProgress)
-
-  local barTopY = graphBarValues[(graphBarValuesFirstIndex - i + 1) % numberOfVisibleBars]
-  if not barTopY then
-    graphBars[i]:Hide()
-    return
-  end
-  barTopY = math_max(barTopY - config.yAxisBottom, 0)
-  barTopY = gf.grid:GetHeight() * math_min(barTopY / (config.yAxisTop - config.yAxisBottom), 1)
-
-
-  local barStartX
-  local barEndX
-  if i == 1 then
-    barStartX = 0
-    barEndX = config.graphBarThickness * (i - 1 + smoothProgress)
-  else
-    barStartX = config.graphBarThickness * (i - 2 + smoothProgress)
-    if barStartX > gf.grid:GetWidth() then
-      graphBars[i]:Hide()
-      return
-    else
-      barEndX = math_min(barStartX + config.graphBarThickness, gf.grid:GetWidth())
-    end
-  end
-
-  graphBars[i]:Show()
-  graphBars[i]:SetPoint("BOTTOMRIGHT", gf.grid, "BOTTOMRIGHT", -barStartX, 0)
-  graphBars[i]:SetPoint("TOPLEFT",     gf.grid, "BOTTOMRIGHT", -barEndX,   barTopY)
-end
-
-
-
 local function DrawGraphBars(graphBars, graphBarValues)
   for i in pairs(graphBars) do
     if i > numberOfVisibleBars then break end
-    local smoothProgress = frameCounter / config.framesPerGraphBar
-    DrawGraphBar(graphBars, graphBarValues, i, smoothProgress)
+    
+    local barTopY = graphBarValues[(graphBarValuesFirstIndex - i + 1) % numberOfVisibleBars]
+    if barTopY then
+    
+      local smoothProgress = frameCounter / config.framesPerGraphBar
+
+      local barStartX
+      local barEndX
+      if i == 1 then
+        barStartX = 0
+        barEndX   = config.graphBarThickness * smoothProgress
+      else
+        barStartX = config.graphBarThickness * (smoothProgress + i - 2)
+        barEndX   = math_min(barStartX + config.graphBarThickness, gf.grid:GetWidth())
+      end
+
+      if barStartX > gf.grid:GetWidth() then
+        graphBars[i]:Hide()
+      else
+        graphBars[i]:Show()
+                
+        -- Modify bar height according to yAxisBottom and yAxisTop.
+        barTopY = math_max(barTopY - config.yAxisBottom, 0)
+        barTopY = gf.grid:GetHeight() * math_min(barTopY / (config.yAxisTop - config.yAxisBottom), 1)
+
+        graphBars[i]:SetPoint("BOTTOMRIGHT", gf.grid, "BOTTOMRIGHT", -barStartX, 0)
+        graphBars[i]:SetPoint("TOPLEFT",     gf.grid, "BOTTOMRIGHT", -barEndX,   barTopY)
+      end
+    end
   end
 end
 
@@ -354,15 +345,13 @@ local function InsertGraphBar(graphBars, drawLayerSubLevel)
 end
 
 
-local function ShowGraphBar(bar, color)
-  bar:ClearAllPoints()
-  bar:Show()
-  bar:SetColorTexture(unpack(color))
-end
+
 local function ShowGraphBars(graphBars, color, numberOfRequiredBars)
   for i, bar in pairs(graphBars) do
     if i <= numberOfRequiredBars then
-      ShowGraphBar(bar, color)
+      bar:ClearAllPoints()
+      bar:Show()
+      bar:SetColorTexture(unpack(color))
     else
       bar:Hide()
     end
