@@ -209,30 +209,29 @@ end
 
 
 
-local function DrawLine(f, startAnchor, startRelativeAnchor, startOffsetX, startOffsetY,
-                           endAnchor, endRelativeAnchor, endOffsetX, endOffsetY,
+local function DrawLine(f, startRelativeAnchor, startOffsetX, startOffsetY,
+                           endRelativeAnchor, endOffsetX, endOffsetY,
                            thickness, r, g, b, a)
 
   local line = f:CreateLine()
   line:SetThickness(thickness)
   line:SetColorTexture(r, g, b, a)
-  line:SetStartPoint(startAnchor, f, startRelativeAnchor, startOffsetX, startOffsetY)
-  line:SetEndPoint(endAnchor, f, endRelativeAnchor, endOffsetX, endOffsetY)
+  line:SetStartPoint(startRelativeAnchor, f, startOffsetX, startOffsetY)
+  line:SetEndPoint(endRelativeAnchor, f, endOffsetX, endOffsetY)
 
-  tinsert(graphLines, line)
 end
 
 
 
 local function SetFrameBorder(f, thickness, r, g, b, a)
   -- Bottom line.
-  DrawLine(f, "BOTTOMLEFT", "BOTTOMLEFT", 0, 0, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0, thickness, r, g, b, a)
+  DrawLine(f, "BOTTOMLEFT", 0, 0, "BOTTOMRIGHT", 0, 0, thickness, r, g, b, a)
   -- Top line.
-  DrawLine(f, "TOPLEFT", "TOPLEFT", 0, 0, "TOPRIGHT", "TOPRIGHT", 0, 0, thickness, r, g, b, a)
+  DrawLine(f, "TOPLEFT", 0, 0, "TOPRIGHT", 0, 0, thickness, r, g, b, a)
   -- Left line.
-  DrawLine(f, "BOTTOMLEFT", "BOTTOMLEFT", 0, 0, "TOPLEFT", "TOPLEFT", 0, 0, thickness, r, g, b, a)
+  DrawLine(f, "BOTTOMLEFT", 0, 0, "TOPLEFT", 0, 0, thickness, r, g, b, a)
   -- Right line.
-  DrawLine(f, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0, "TOPRIGHT", "TOPRIGHT", 0, 0, thickness, r, g, b, a)
+  DrawLine(f, "BOTTOMRIGHT", 0, 0, "TOPRIGHT", 0, 0, thickness, r, g, b, a)
 end
 
 
@@ -522,7 +521,8 @@ local function AddSlider(parentFrame, anchor, offsetX, offsetY, sliderTitle, var
       self.valueLabel:SetText(value)
       if valueChangedFunction then valueChangedFunction(self, value) end
       RefreshGraph()
-    end)
+    end
+  )
 end
 
 
@@ -596,9 +596,7 @@ local function AddSeriesSelector(parentFrame, anchor, offsetX, offsetY, labelTex
 
 
   colorButton:SetScript("OnClick", function()
-
       ShowColorPicker(variableSuffix)
-
     end
   )
 
@@ -695,6 +693,8 @@ local function DrawConfigFrame()
   AddSlider(cf.Inset, "TOPLEFT", 20, -380, "Graph line thickness", "graphLineThickness", GRAPH_LINE_THICKNESS_MIN, GRAPH_LINE_THICKNESS_MAX, 1)
 
 
+
+
   -- tinsert(UISpecialFrames, "fpsGraph_configFrame")
   cf:Show()
 
@@ -742,7 +742,9 @@ end)
 
 
 
+-- FPS (frames per second)    
 
+-- FI (frame-to-frame interval) in msec (milliseconds)
 
 
 
