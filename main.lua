@@ -53,11 +53,11 @@ local CONFIG_DEFAULTS = {
   graphY      = 0,
 
   graphWidth  = 300,
-  graphHeight = 100,
+  graphHeight = 120,
 
-  graphBarThickness = 1,
+  graphBarThickness = 3,
 
-  framesPerGraphBar = 1,
+  framesPerGraphBar = 4,
 
   show = {
     max = true,
@@ -693,10 +693,7 @@ local function DrawConfigFrame()
   AddSlider(cf.Inset, "TOPLEFT", 20, -380, "Graph line thickness", "graphLineThickness", GRAPH_LINE_THICKNESS_MIN, GRAPH_LINE_THICKNESS_MAX, 1)
 
 
-
-
-  -- tinsert(UISpecialFrames, "fpsGraph_configFrame")
-  cf:Show()
+  tinsert(UISpecialFrames, cf:GetName())
 
 end
 
@@ -705,7 +702,7 @@ end
 local addonLoadedFrame = CreateFrame("Frame")
 addonLoadedFrame:RegisterEvent("ADDON_LOADED")
 
-addonLoadedFrame:SetScript("OnEvent", function(self, event, arg1, ...)
+addonLoadedFrame:SetScript("OnEvent", function(self, event, arg1)
   if arg1 == folderName then
 
     if not config then
@@ -740,6 +737,18 @@ end)
 
 
 
+
+
+-- For debugging!
+-- local startupFrame = CreateFrame("Frame")
+-- startupFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+-- startupFrame:SetScript("OnEvent", function()
+  -- cf:Show()
+-- end)
+  
+  
+  
+  
 
 
 -- FPS (frames per second)    
