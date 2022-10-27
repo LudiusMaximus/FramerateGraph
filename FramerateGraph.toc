@@ -1,4 +1,4 @@
-## Interface: 80300
+## Interface: 100000
 ## Title: Framerate Graph
 ## Author: LudiusMaximus
 ## Notes: More FPS info than meets the eye!

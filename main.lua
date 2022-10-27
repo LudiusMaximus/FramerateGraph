@@ -508,7 +508,7 @@ local function AddSlider(parentFrame, anchor, offsetX, offsetY, sliderTitle, var
   _G[slider:GetName() .. 'High']:SetText(maxValue)
   _G[slider:GetName() .. 'Text']:SetText(sliderTitle)
 
-  slider.valueLabel = parentFrame:CreateFontString("fpsGraph_"..variableName.."SliderValueLabel", "HIGH")
+  slider.valueLabel = parentFrame:CreateFontString("fpsGraph_"..variableName.."SliderValueLabel", "OVERLAY")
   slider.valueLabel:SetFont("Fonts\\FRIZQT__.TTF", 11)
   slider.valueLabel:SetTextColor(1, 1, 1)
   slider.valueLabel:SetPoint("LEFT", slider, "RIGHT", 15, 0)
@@ -550,7 +550,7 @@ local function AddSeriesSelector(parentFrame, anchor, offsetX, offsetY, labelTex
     end
   )
 
-  local label = parentFrame:CreateFontString("fpsGraph_"..variableSuffix.."SeriesSelector", "HIGH")
+  local label = parentFrame:CreateFontString("fpsGraph_"..variableSuffix.."SeriesSelector", "OVERLAY")
   label:SetPoint("LEFT", checkbox, "RIGHT", 10, 0)
   label:SetWidth(180)
   label:SetFont("Fonts\\FRIZQT__.TTF", 12)
