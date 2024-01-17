@@ -94,6 +94,10 @@ local RefreshGraph
 local OneFrameMode
 
 
+-- The config variable.
+local config = nil
+
+
 -- The graph frame.
 local gf = nil
 
