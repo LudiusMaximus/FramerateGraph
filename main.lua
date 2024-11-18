@@ -711,14 +711,14 @@ addonLoadedFrame:SetScript("OnEvent", function(self, event, arg1)
     config = framerateGraph_config
 
     -- Remove obsolete values from saved variables.
-    for k in pairs (config) do
+    for k in pairs(config) do
       if not CONFIG_DEFAULTS[k] then
         config[k] = nil
       end
     end
 
     -- Fill missing values.
-    for k, v in pairs (CONFIG_DEFAULTS) do
+    for k, v in pairs(CONFIG_DEFAULTS) do
       if not config[k] then
         config[k] = v
       end
