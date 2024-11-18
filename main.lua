@@ -81,9 +81,6 @@ local CONFIG_DEFAULTS = {
 }
 
 
-
-
-
 ---------------------
 -- Locals -----------
 ---------------------
@@ -92,10 +89,7 @@ local CONFIG_DEFAULTS = {
 local UpdateGraphBarsColor
 local RefreshGraph
 local OneFrameMode
-
-
--- The config variable.
-local config = nil
+local config
 
 
 -- The graph frame.
@@ -239,14 +233,16 @@ local function SetFrameBorder(f, thickness, r, g, b, a)
 end
 
 
-
 local function DrawGraphBars(graphBars, graphBarValues)
+
   for i in pairs(graphBars) do
+
     if i > numberOfVisibleBars then break end
-    
+
     local barTopY = graphBarValues[(graphBarValuesFirstIndex - i + 1) % numberOfVisibleBars]
+
     if barTopY then
-    
+
       local smoothProgress = frameCounter / config.framesPerGraphBar
 
       local barStartX
@@ -262,26 +258,34 @@ local function DrawGraphBars(graphBars, graphBarValues)
       if barStartX > gf.grid:GetWidth() then
         graphBars[i]:Hide()
       else
-        graphBars[i]:Show()
-                
         -- Modify bar height according to yAxisBottom and yAxisTop.
         barTopY = math_max(barTopY - config.yAxisBottom, 0)
         barTopY = gf.grid:GetHeight() * math_min(barTopY / (config.yAxisTop - config.yAxisBottom), 1)
 
         graphBars[i]:SetPoint("BOTTOMRIGHT", gf.grid, "BOTTOMRIGHT", -barStartX, 0)
         graphBars[i]:SetPoint("TOPLEFT",     gf.grid, "BOTTOMRIGHT", -barEndX,   barTopY)
+
+        graphBars[i]:Show()
       end
+    else
+      graphBars[i]:Hide()
     end
   end
 end
 
 
+local skipFirstFrames = 10
+
 local updateFrame = CreateFrame("Frame")
 updateFrame:SetScript("onUpdate", function(self, elapsed)
 
-  -- Calculate the framerate between this and the last frame.
-  local currentFramerate = 1/elapsed
+  if skipFirstFrames > 0 then
+    skipFirstFrames = skipFirstFrames - 1
+    return
+  end
 
+  -- Calculate the framerate between this and the last frame.
+  local currentFramerate = 1 / elapsed
 
   if config.framesPerGraphBar == 1 then
 
@@ -293,25 +297,25 @@ updateFrame:SetScript("onUpdate", function(self, elapsed)
 
   else
 
-    frameCounter = frameCounter + 1
-
     if config.show.max then maxFPS = math_max(maxFPS, currentFramerate) end
     if config.show.avg then sumFPS = sumFPS + currentFramerate end
     if config.show.min then minFPS = math_min(minFPS, currentFramerate) end
 
-    -- If one graph is complete, fill in the value.
+    frameCounter = frameCounter + 1
+
+    -- If one graph bar is complete, fill in the value.
     if frameCounter == config.framesPerGraphBar then
 
       -- Increase the index.
       graphBarValuesFirstIndex = (graphBarValuesFirstIndex + 1) % numberOfVisibleBars
 
-      -- Fill in the current values and reset the counters.
+      -- Fill in the current values and reset frameCounter.
       if config.show.max then
         graphBarValues.max[graphBarValuesFirstIndex] = maxFPS
         maxFPS = 0
       end
       if config.show.avg then
-        graphBarValues.avg[graphBarValuesFirstIndex] = sumFPS/frameCounter
+        graphBarValues.avg[graphBarValuesFirstIndex] = sumFPS/config.framesPerGraphBar
         sumFPS = 0
       end
       if config.show.min then
@@ -425,7 +429,7 @@ RefreshGraph = function()
     -- The easiest way to make sure that all graphs have the same amount
     -- of bars is to insert them all, regardless of whether they are
     -- needed or not...
-    for i = numberOfCreatedBars+1, numberOfRequiredBars, 1 do
+    for i = numberOfCreatedBars + 1, numberOfRequiredBars, 1 do
       InsertGraphBar(graphBars.max, -1)
       InsertGraphBar(graphBars.avg, 0)
       InsertGraphBar(graphBars.min, 1)
@@ -486,14 +490,6 @@ local function CreateGraph()
 
   RefreshGraph()
 end
-
-
-
-
-
-
-
-
 
 
 
@@ -709,31 +705,29 @@ addonLoadedFrame:RegisterEvent("ADDON_LOADED")
 addonLoadedFrame:SetScript("OnEvent", function(self, event, arg1)
   if arg1 == folderName then
 
-    if not config then
-      config = CONFIG_DEFAULTS
-    else
+    -- Saved config variable.
+    framerateGraph_config = framerateGraph_config or CONFIG_DEFAULTS
+    -- For easier access.
+    config = framerateGraph_config
 
-      -- Remove obsolete values from saved variables.
-      for k in pairs (config) do
-        if not CONFIG_DEFAULTS[k] then
-          config[k] = nil
-        end
+    -- Remove obsolete values from saved variables.
+    for k in pairs (config) do
+      if not CONFIG_DEFAULTS[k] then
+        config[k] = nil
       end
+    end
 
-      -- Fill missing values.
-      for k, v in pairs (CONFIG_DEFAULTS) do
-        if not config[k] then
-          config[k] = v
-        end
+    -- Fill missing values.
+    for k, v in pairs (CONFIG_DEFAULTS) do
+      if not config[k] then
+        config[k] = v
       end
-
-
     end
 
 
-  DrawConfigFrame()
+    DrawConfigFrame()
 
-  CreateGraph()
+    CreateGraph()
 
   end
 end)
@@ -741,21 +735,19 @@ end)
 
 
 
-
-
--- For debugging!
+-- -- To manually open the config window!
 -- local startupFrame = CreateFrame("Frame")
 -- startupFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 -- startupFrame:SetScript("OnEvent", function()
   -- cf:Show()
 -- end)
-  
-  
-  
-  
 
 
--- FPS (frames per second)    
+
+
+
+
+-- FPS (frames per second)
 
 -- FI (frame-to-frame interval) in msec (milliseconds)
 

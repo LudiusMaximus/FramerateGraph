@@ -2,7 +2,7 @@
 ## Title: Framerate Graph
 ## Author: LudiusMaximus
 ## Notes: More FPS info than meets the eye!
-## SavedVariables: config
+## SavedVariables: framerateGraph_config
 ## RequiredDeps:
 ## OptionalDeps:
 ## Version: 1.0
