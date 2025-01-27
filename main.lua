@@ -177,8 +177,8 @@ local function ColorPickerCallback(restore)
 end
 
 
--- https://wow.gamepedia.com/Using_the_ColorPickerFrame
-function ShowColorPicker(variableSuffix)
+-- https://warcraft.wiki.gg/wiki/Using_the_ColorPickerFrame
+local function ShowColorPicker(variableSuffix)
   ColorPickerFrame.variableSuffix = variableSuffix
 
   local color = config.color[variableSuffix]
