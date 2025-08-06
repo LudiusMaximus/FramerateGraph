@@ -1,6 +1,7 @@
 ## Interface: 110200
 ## Title: Framerate Graph
 ## Author: LudiusMaximus
+## IconAtlas: UI-Frame-DastardlyDuos-icon-Speed
 ## Notes: More FPS info than meets the eye!
 ## SavedVariables: framerateGraph_config
 ## RequiredDeps:
