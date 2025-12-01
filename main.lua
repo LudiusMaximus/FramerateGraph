@@ -706,20 +706,20 @@ addonLoadedFrame:SetScript("OnEvent", function(self, event, arg1)
   if arg1 == folderName then
 
     -- Saved config variable.
-    framerateGraph_config = framerateGraph_config or CONFIG_DEFAULTS
+    framerateGraph_config = framerateGraph_config or {}
     -- For easier access.
     config = framerateGraph_config
 
     -- Remove obsolete values from saved variables.
     for k in pairs(config) do
-      if not CONFIG_DEFAULTS[k] then
+      if CONFIG_DEFAULTS[k] == nil then
         config[k] = nil
       end
     end
 
     -- Fill missing values.
     for k, v in pairs(CONFIG_DEFAULTS) do
-      if not config[k] then
+      if config[k] == nil then
         config[k] = v
       end
     end
