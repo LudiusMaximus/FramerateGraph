@@ -1,4 +1,4 @@
-## Interface: 110207
+## Interface: 120000
 ## Title: Framerate Graph
 ## Author: LudiusMaximus
 ## IconAtlas: UI-Frame-DastardlyDuos-icon-Speed
